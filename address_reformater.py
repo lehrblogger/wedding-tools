@@ -34,15 +34,18 @@ class AddressReformater:
                 sorted_rows = filtered_sorted_rows
 
                 # Set up the mappings, although note special case below for newlines in the Group
+                group_string     = 'Group'
+                address_1_string = 'Street Address 1'
+                address_2_string = 'Street Address 2 (Optional)'
                 minted_tuple_array = [
-                    ('Name',                        'Group'),
-                    ('Street Address 1',            None),
-                    ('Street Address 2 (Optional)', 'HomeStreet'),
-                    ('City',                        'HomeCity'),
-                    ('State/Region',                'HomeState'),
-                    ('Country',                     'HomeCountry'),
-                    ('Zip/Postal code',             'HomePostalCode'),
-                    ('Email (Optional)',            None)
+                    ('Name',             group_string),
+                    (address_1_string,   None),
+                    (address_2_string,   'HomeStreet'),
+                    ('City',             'HomeCity'),
+                    ('State/Region',     'HomeState'),
+                    ('Country',          'HomeCountry'),
+                    ('Zip/Postal code',  'HomePostalCode'),
+                    ('Email (Optional)', None)
                 ]
                 minted_mappings  = OrderedDict()
                 for minted_tuple in minted_tuple_array:
@@ -61,14 +64,19 @@ class AddressReformater:
                     for mapped_key, mapped_val in minted_mappings.items():
                         if mapped_val:
                             # Split the Group into new lines and move as needed.
-                            if mapped_val == 'Group' and '\\n' in sorted_row[mapped_val]:
+                            if mapped_val == group_string and '\\n' in sorted_row[mapped_val]:
                                 name_rows = sorted_row[mapped_val].split('\\n')
                                 if (len(name_rows)) > 2: raise Exception
-                                row_to_write[mapped_key]         = name_rows[0]
-                                row_to_write['Street Address 1'] = name_rows[1]
-                            #TODO move up the second street address line to be first if we have a one-line Group
+                                row_to_write[mapped_key]   = name_rows[0]
+                                row_to_write[address_1_string] = name_rows[1]
+                            #TODO handle multi-line addresses for Kabir and etc
                             else:
                                 row_to_write[mapped_key] = sorted_row[mapped_val]
+                    # Shift up the addresses if the Group had only one line
+                    if address_1_string not in row_to_write or row_to_write[address_1_string] == '':
+                       row_to_write[address_1_string] = row_to_write[address_2_string]
+                       row_to_write[address_2_string] = ''
+                    # Write the new row
                     writer.writerow(row_to_write)
                 
                 # Clean up
