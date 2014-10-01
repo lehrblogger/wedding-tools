@@ -5,6 +5,96 @@ import csv
 import logging
 from collections import OrderedDict
 from optparse import OptionParser
+import re
+
+temp_concat_string = ' & '
+
+class Member:
+    
+    def __init__(self, prefix, first, last, nick=None):
+        self.prefix = prefix
+        self.first  = first
+        self.nick   = nick
+        self.last   = last
+        
+    def full_name(self):
+        if self.nick:
+            return self.prefix + self.first + ' "' + self.nick + '" ' + self.last
+        return     self.prefix + self.first + ' '                 ' ' + self.last
+        
+    def __eq__(self, other):
+        return isinstance(other, Member) and \
+            self.prefix == other.prefix  and \
+            self.first  == other.first   and \
+            self.nick   == other.nick    and \
+            self.last   == other.last
+    
+    def __hash__(self):
+        return hash((self.prefix, self.first, self.nick, self.last))
+
+class Address:
+    
+    def __init__(self, street_1, city, state_region, zip_postal, country):
+        self.street_1     = street_1
+        self.city         = city
+        self.state_region = state_region
+        self.zip_postal   = zip_postal
+        self.country      = country
+    
+    def __str__(self):
+        return self.street_1 + ', ' + self.city + ', ' + self.state_region + ' ' + self.zip_postal
+
+class Group:
+    
+    def __init__(self, name, address):
+        self.name = name
+        self.address = address
+        self._members = set()
+    
+    @staticmethod
+    def fieldnames(format='minted'):
+        if format == 'minted':
+            return [
+                'Name'                       ,
+                'Street Address 1'           ,
+                'Street Address 2 (Optional)',
+                'City'                       ,
+                'State/Region'               ,
+                'Country'                    ,
+                'Zip/Postal code'            ,
+                'Email (Optional)'
+            ]
+        else:
+            return []
+    
+    def add_member(self, member):
+        self._members.add(member)
+        
+    def name_first_line(self):
+        return self.name.split(temp_concat_string)[0]
+    
+    def name_second_line(self):
+        if temp_concat_string in self.name:
+            return self.name.split(temp_concat_string)[1]
+    
+    def row(self, format='minted'):
+        if format == 'minted':
+            return {
+                'Name'                       : self.name_first_line(),
+                'Street Address 1'           : self.name_second_line() if self.name_second_line() else self.address.street_1,
+                'Street Address 2 (Optional)': self.name_second_line() if self.address.street_1   else None,
+                'City'                       : self.address.city,
+                'State/Region'               : self.address.state_region,
+                'Country'                    : self.address.country,
+                'Zip/Postal code'            : self.address.zip_postal,
+                'Email (Optional)'           : None
+            }
+        else:
+            return {}
+    
+    def __str__(self):
+        return str(self._members) + ' ' + str(self.address)
+        
 
 class AddressReformater:
 
@@ -19,70 +109,32 @@ class AddressReformater:
             print 'Output: ' + self.output;
         with open(self.input, 'r') as csv_input:
             with open(self.output, 'w') as csv_output:
+                groups = {}
                 
-                # Read the rows, then sort by group and then street address
                 reader = csv.DictReader(csv_input, delimiter=',')
-                sorted_rows = sorted(reader, key=lambda x: (x['Guest Of'], x['Group'], x['HomeStreet'],  x['Relationship']), reverse=True)
-
-                # Filter the rows to have one per Group
-                filtered_sorted_rows = []
-                current_group = ''
-                for sorted_row in sorted_rows:
-                    if (current_group != sorted_row['Group']):
-                        current_group = sorted_row['Group']
-                        filtered_sorted_rows.append(sorted_row)
-                sorted_rows = filtered_sorted_rows
-
-                # Set up the mappings, although note special case below for newlines in the Group
-                group_string     = 'Group'
-                address_1_string = 'Street Address 1'
-                address_2_string = 'Street Address 2 (Optional)'
-                minted_tuple_array = [
-                    ('Name',             group_string),
-                    (address_1_string,   None),
-                    (address_2_string,   'HomeStreet'),
-                    ('City',             'HomeCity'),
-                    ('State/Region',     'HomeState'),
-                    ('Country',          'HomeCountry'),
-                    ('Zip/Postal code',  'HomePostalCode'),
-                    ('Email (Optional)', None)
-                ]
-                minted_mappings  = OrderedDict()
-                for minted_tuple in minted_tuple_array:
-                    minted_mappings[minted_tuple[0]] = minted_tuple[1]
-
-                # Prepare the writer and re-add the header
-                writer = csv.DictWriter(csv_output, fieldnames=minted_mappings.keys())
+                sorted_rows = sorted(reader, key=lambda x: (x['HomeStreet']), reverse=True)  # make groups with addresses first
+                for row in sorted_rows:
+                    first, nick = re.match('^(.*)\ ?\"?(.*)\"?$', row['FirstName']).groups()
+                    member = Member(row['\xef\xbb\xbfSalutation'], first, row['LastName'], nick)
+                    
+                    group_name = row['Group'].replace('\\n', temp_concat_string)
+                    if (group_name not in groups):
+                        address = Address(row['HomeStreet'], row['HomeCity'], row['HomeState'], row['HomePostalCode'], row['HomeCountry'])
+                        group = Group(group_name, address)
+                        groups[group_name] = group
+                    groups[group_name].add_member(member)
+                
+                writer = csv.DictWriter(csv_output, fieldnames=Group.fieldnames())
                 header_row = {}
                 for fieldname in writer.fieldnames:
                     header_row[fieldname] = fieldname
                 writer.writerow(header_row)
-
-                # Then Loop through and add a row for each Group
-                for sorted_row in sorted_rows:
-                    row_to_write = {}
-                    for mapped_key, mapped_val in minted_mappings.items():
-                        if mapped_val:
-                            # Split the Group into new lines and move as needed.
-                            if mapped_val == group_string and '\\n' in sorted_row[mapped_val]:
-                                name_rows = sorted_row[mapped_val].split('\\n')
-                                if (len(name_rows)) > 2: raise Exception
-                                row_to_write[mapped_key]   = name_rows[0]
-                                row_to_write[address_1_string] = name_rows[1]
-                            #TODO handle multi-line addresses for Kabir and etc
-                            else:
-                                row_to_write[mapped_key] = sorted_row[mapped_val]
-                    # Shift up the addresses if the Group had only one line
-                    if address_1_string not in row_to_write or row_to_write[address_1_string] == '':
-                       row_to_write[address_1_string] = row_to_write[address_2_string]
-                       row_to_write[address_2_string] = ''
-                    # Write the new row
-                    writer.writerow(row_to_write)
-                
-                # Clean up
+                for group_name, group in groups.items():
+                    writer.writerow(group.row())
+                    
                 csv_input.close()
-                csv_output.close()
-
+            csv_output.close()
+    
 
 def main():
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
