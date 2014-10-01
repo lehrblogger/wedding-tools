@@ -22,7 +22,7 @@ class AddressReformater:
                 
                 # Read the rows, then sort by group and then street address
                 reader = csv.DictReader(csv_input, delimiter=',')
-                sorted_rows = sorted(reader, key=lambda x: (x['Group'], x['HomeStreet']), reverse=True)
+                sorted_rows = sorted(reader, key=lambda x: (x['Guest Of'], x['Group'], x['HomeStreet'],  x['Relationship']), reverse=True)
 
                 # Filter the rows to have one per Group
                 filtered_sorted_rows = []
