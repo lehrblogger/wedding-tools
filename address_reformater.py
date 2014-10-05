@@ -31,6 +31,7 @@ class Guest:
     
     def __hash__(self):
         return hash((self.prefix, self.first, self.nick, self.last))
+    
 
 class Address:
     
@@ -43,6 +44,7 @@ class Address:
     
     def __str__(self):
         return self.street_1 + ', ' + self.city + ', ' + self.state_region + ' ' + self.zip_postal
+    
 
 class Group:
     
@@ -69,7 +71,7 @@ class Group:
     
     def add_guest(self, guest):
         self._guests.add(guest)
-        
+    
     def name_first_line(self):
         return self.name.split(temp_concat_string)[0]
     
@@ -94,7 +96,7 @@ class Group:
     
     def __str__(self):
         return str(self._guests) + ' ' + str(self.address)
-        
+    
 
 class AddressReformater:
 
