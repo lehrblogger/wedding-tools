@@ -82,7 +82,7 @@ class Group:
             return {
                 'Name'                       : self.name_first_line(),
                 'Street Address 1'           : self.name_second_line() if self.name_second_line() else self.address.street_1,
-                'Street Address 2 (Optional)': self.name_second_line() if self.address.street_1   else None,
+                'Street Address 2 (Optional)': self.address.street_1   if self.name_second_line() else None,
                 'City'                       : self.address.city,
                 'State/Region'               : self.address.state_region,
                 'Country'                    : self.address.country,
