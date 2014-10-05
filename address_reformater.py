@@ -9,7 +9,7 @@ import re
 
 temp_concat_string = ' & '
 
-class Member:
+class Guest:
     
     def __init__(self, prefix, first, last, nick=None):
         self.prefix = prefix
@@ -23,7 +23,7 @@ class Member:
         return     self.prefix + self.first + ' '                 ' ' + self.last
         
     def __eq__(self, other):
-        return isinstance(other, Member) and \
+        return isinstance(other, Guest) and \
             self.prefix == other.prefix  and \
             self.first  == other.first   and \
             self.nick   == other.nick    and \
@@ -49,7 +49,7 @@ class Group:
     def __init__(self, name, address):
         self.name = name
         self.address = address
-        self._members = set()
+        self._guests = set()
     
     @staticmethod
     def fieldnames(format='minted'):
@@ -67,8 +67,8 @@ class Group:
         else:
             return []
     
-    def add_member(self, member):
-        self._members.add(member)
+    def add_guest(self, guest):
+        self._guests.add(guest)
         
     def name_first_line(self):
         return self.name.split(temp_concat_string)[0]
@@ -93,7 +93,7 @@ class Group:
             return {}
     
     def __str__(self):
-        return str(self._members) + ' ' + str(self.address)
+        return str(self._guests) + ' ' + str(self.address)
         
 
 class AddressReformater:
@@ -115,14 +115,14 @@ class AddressReformater:
                 sorted_rows = sorted(reader, key=lambda x: (x['HomeStreet']), reverse=True)  # make groups with addresses first
                 for row in sorted_rows:
                     first, nick = re.match('^(.*)\ ?\"?(.*)\"?$', row['FirstName']).groups()
-                    member = Member(row['\xef\xbb\xbfSalutation'], first, row['LastName'], nick)
+                    guest = Guest(row['\xef\xbb\xbfSalutation'], first, row['LastName'], nick)
                     
                     group_name = row['Group'].replace('\\n', temp_concat_string)
                     if (group_name not in groups):
                         address = Address(row['HomeStreet'], row['HomeCity'], row['HomeState'], row['HomePostalCode'], row['HomeCountry'])
                         group = Group(group_name, address)
                         groups[group_name] = group
-                    groups[group_name].add_member(member)
+                    groups[group_name].add_guest(guest)
                 
                 writer = csv.DictWriter(csv_output, fieldnames=Group.fieldnames())
                 header_row = {}
