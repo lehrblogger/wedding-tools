@@ -112,14 +112,17 @@ class AddressReformater:
                 groups = {}
                 
                 reader = csv.DictReader(csv_input, delimiter=',')
-                sorted_rows = sorted(reader, key=lambda x: (x['HomeStreet']), reverse=True)  # make groups with addresses first
-                for row in sorted_rows:
+                for row in reader:
                     first, nick = re.match('^(.*)\ ?\"?(.*)\"?$', row['FirstName']).groups()
                     guest = Guest(row['\xef\xbb\xbfSalutation'], first, row['LastName'], nick)
                     
-                    group_name = row['Group'].replace('\\n', temp_concat_string)
+                    group_name = row['Organisation'].replace('\\n', temp_concat_string)  # 'Organisation' with an 's'
                     if (group_name not in groups):
-                        address = Address(row['HomeStreet'], row['HomeCity'], row['HomeState'], row['HomePostalCode'], row['HomeCountry'])
+                        address = Address(row['LinkedOrganizationPostalStreet'],
+                                          row['LinkedOrganizationPostalCity'],
+                                          row['LinkedOrganizationPostalState'],
+                                          row['LinkedOrganizationPostalCode'],
+                                          row['LinkedOrganizationPostalCountry'])
                         group = Group(group_name, address)
                         groups[group_name] = group
                     groups[group_name].add_guest(guest)
