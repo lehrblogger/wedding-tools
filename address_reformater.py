@@ -86,8 +86,11 @@ class Group:
     
     def row(self, format='minted'):
         if format == 'minted':
+            if not self.address.street_1:
+                print '  Skipping row for ' + self.name + ': no address'
+                return {}
             if self.name_second_line() and self.address.street_2:
-                print '  Skipping row for ' + self.name
+                print '  Skipping row for ' + self.name + ': too many lines'
                 return {}
             return {
                 'Name'                       : self.name_first_line(),
@@ -143,7 +146,8 @@ class AddressReformater:
                     header_row[fieldname] = fieldname
                 writer.writerow(header_row)
                 for group_name, group in groups.items():
-                    writer.writerow(group.row())
+                    if group.row():
+                        writer.writerow(group.row())
                     
                 csv_input.close()
             csv_output.close()
