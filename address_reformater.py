@@ -35,8 +35,13 @@ class Guest:
 
 class Address:
     
-    def __init__(self, street_1, city, state_region, zip_postal, country):
+    def __init__(self, street, city, state_region, zip_postal, country):
+        street_1 = street
+        street_2 = None
+        if '\n' in street:
+            street_1, street_2 = street.split('\n')
         self.street_1     = street_1
+        self.street_2     = street_2
         self.city         = city
         self.state_region = state_region
         self.zip_postal   = zip_postal
@@ -81,10 +86,13 @@ class Group:
     
     def row(self, format='minted'):
         if format == 'minted':
+            if self.name_second_line() and self.address.street_2:
+                print '  Skipping row for ' + self.name
+                return {}
             return {
                 'Name'                       : self.name_first_line(),
                 'Street Address 1'           : self.name_second_line() if self.name_second_line() else self.address.street_1,
-                'Street Address 2 (Optional)': self.address.street_1   if self.name_second_line() else None,
+                'Street Address 2 (Optional)': self.address.street_1   if self.name_second_line() else self.address.street_2,
                 'City'                       : self.address.city,
                 'State/Region'               : self.address.state_region,
                 'Country'                    : self.address.country,
