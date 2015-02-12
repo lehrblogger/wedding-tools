@@ -148,9 +148,6 @@ class AddressReformater:
                 for group_name, group in groups.items():
                     if group.row():
                         writer.writerow(group.row())
-                    
-                csv_input.close()
-            csv_output.close()
     
 
 def main():
@@ -161,7 +158,7 @@ def main():
     parser.add_option("-o", "--output", dest="output",
                     help="the file to which you want to write the data")
     parser.add_option("-d", "--debug", dest="debug",
-                    help="limit the number of threads fetched for debugging",
+                    help="print extra debugging information",
                     action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
     if options.input and options.output:
