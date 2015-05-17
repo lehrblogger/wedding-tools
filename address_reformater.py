@@ -130,15 +130,18 @@ class AddressReformater:
                     guest = Guest(row['\xef\xbb\xbfSalutation'], first, row['LastName'], nick)
                     
                     group_name = row['Organisation'].replace('\\n', temp_concat_string)  # 'Organisation' with an 's'
-                    if (group_name not in groups):
-                        address = Address(row['LinkedOrganizationPostalStreet'],
-                                          row['LinkedOrganizationPostalCity'],
-                                          row['LinkedOrganizationPostalState'],
-                                          row['LinkedOrganizationPostalCode'],
-                                          row['LinkedOrganizationPostalCountry'])
-                        group = Group(group_name, address)
-                        groups[group_name] = group
-                    groups[group_name].add_guest(guest)
+                    if group_name:
+                        if (group_name not in groups):
+                            address = Address(row['LinkedOrganizationPostalStreet'],
+                                              row['LinkedOrganizationPostalCity'],
+                                              row['LinkedOrganizationPostalState'],
+                                              row['LinkedOrganizationPostalCode'],
+                                              row['LinkedOrganizationPostalCountry'])
+                            group = Group(group_name, address)
+                            groups[group_name] = group
+                        groups[group_name].add_guest(guest)
+                    else:
+                        print '  Skipping row for ' + guest.full_name() + ': no group'
                 
                 writer = csv.DictWriter(csv_output, fieldnames=Group.fieldnames())
                 header_row = {}
